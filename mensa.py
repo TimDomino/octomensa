@@ -91,25 +91,28 @@ def main():
         '$(LANG_MODIFIER)', lang_modifiers[arguments.lang])
 
     menu_list = get_all_menus(get_url, arguments.lang)
-
-    nutrition_string = ''
-    if arguments.vegan:
-        nutrition_string = ' (Vegan Meals Only)'
-    elif arguments.vegetarian:
-        nutrition_string = ' (Vegetarian Meals Only)'
-    print_headline(
-        f'Menu for {mensa_names[arguments.mensa][1]}{nutrition_string}')
-
     relative_list = get_relative_list(menu_list)
     print_list = get_print_list(
         relative_list, arguments.num_past, arguments.num_future)
 
     if print_list.count(True) > 0:
-        print_relevant_menus(
-            menu_list, print_list, arguments.vegetarian, arguments.vegan, arguments.long)
-        if arguments.screenshot and print_list.count(True) > 0:
+        
+        if arguments.screenshot:
             screenshot(get_url, menu_list, relative_list, print_list,
                        'screenshots/', arguments.mensa)
+
+        else:
+            nutrition_string = ''
+            if arguments.vegan:
+                nutrition_string = ' (Vegan Meals Only)'
+            elif arguments.vegetarian:
+                nutrition_string = ' (Vegetarian Meals Only)'
+            print_string = print_headline(
+                f'Menu for {mensa_names[arguments.mensa][1]}{nutrition_string}')
+
+            print_string += print_relevant_menus(
+                menu_list, print_list, arguments.vegetarian, arguments.vegan, arguments.long)
+            print(print_string)
 
     else:
         print(empty_message[arguments.lang])
@@ -262,13 +265,14 @@ def get_print_list(relative_list, num_past, num_future):
 
 
 def print_relevant_menus(menu_list, print_list, vegetarian, vegan, long_output):
-    print_count = 0
+    output_print_string = ''
 
     for i in range(len(print_list)):
         if print_list[i]:
-            print(menu_list[i].__str__(vegetarian=vegetarian,
-                  vegan=vegan, compact=not long_output))
-            print_count += 1
+            output_print_string += menu_list[i].__str__(vegetarian=vegetarian,
+                  vegan=vegan, compact=not long_output) + '\n'
+
+    return output_print_string
 
 
 def screenshot(url, menu_list, relative_list, print_list, output_dir, filename_prefix):
@@ -295,11 +299,11 @@ def screenshot(url, menu_list, relative_list, print_list, output_dir, filename_p
 
 
 def print_headline(text):
-    print((len(text) + 4) * '#')
-    print('# ' + text + ' #')
-    print((len(text) + 4) * '#')
-    print()
-
+    output_print_string = ''
+    output_print_string += (len(text) + 4) * '#' + '\n'
+    output_print_string += '# ' + text + ' #\n'
+    output_print_string += (len(text) + 4) * '#' + '\n\n'
+    return output_print_string
 
 if __name__ == '__main__':
     main()
