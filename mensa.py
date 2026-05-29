@@ -4,8 +4,10 @@ import datetime
 import requests
 import bs4
 import os
+import shutil
 import sys
 import time
+import json
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -14,6 +16,7 @@ mensa_url = 'https://www.studierendenwerk-aachen.de/speiseplaene/$(MENSA_NAME)-w
 lang_modifiers = {'en': '-en', 'de': ''}
 
 mattermost_post_url = 'https://mattermost.vr.rwth-aachen.de/api/v4/posts'
+mattermost_upload_url = 'https://mattermost.vr.rwth-aachen.de/api/v4/files'
 mattermost_channel_id = '44n1ysibmtbxme65pmhbwoofzy' # test channel
 mattermost_token = open('secret/mattermost-token.txt', 'r').readline()
 
@@ -31,6 +34,7 @@ weekdays = {'en': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
             'de': ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag']}
 
 date_format = '%d.%m.%Y'
+screenshot_directory = 'output/'
 
 today = datetime.datetime.today().replace(
         hour=0, minute=0, second=0, microsecond=0)
@@ -56,9 +60,9 @@ class MenuItem:
             leader = '- '
 
         if compact:
-            return f'{leader}{self.description} | {self.price}\n'
+            return f'{leader}{self.description} | *{self.price}*\n'
         else:
-            return f'{self.item_type}\n{leader}{self.description}\n{self.price}\n\n'
+            return f'**{self.item_type}**\n{leader}{self.description}\n*{self.price}*\n\n'
 
 
 class DayMenu:
@@ -99,24 +103,19 @@ def main():
     if print_list.count(True) > 0:
         
         if arguments.screenshot:
-            screenshot(get_url, menu_list, relative_list, print_list,
-                       'screenshots/', arguments.mensa)
+            screenshot_list = take_screenshots(get_url, menu_list, relative_list, print_list,
+                                screenshot_directory, arguments.mensa)
+            if arguments.upload:
+                post_mattermost('', screenshot_list)
 
         else:
-            nutrition_string = ''
-            if arguments.vegan:
-                nutrition_string = ' (Vegan Meals Only)'
-            elif arguments.vegetarian:
-                nutrition_string = ' (Vegetarian Meals Only)'
-            print_string = print_headline(
-                f'Menu for {mensa_names[arguments.mensa][1]}{nutrition_string}')
-
-            print_string += print_relevant_menus(
+            print_string = print_relevant_menus(
                 menu_list, print_list, arguments.vegetarian, arguments.vegan, arguments.long)
-            print(print_string)
 
             if arguments.upload:
                 post_mattermost(print_string) 
+            else:
+                print(print_string)
 
 
 def parse_command_arguments():
@@ -146,6 +145,7 @@ def parse_command_arguments():
     parser.add_argument('-s', '--screenshot', action='store_true',
                         help="save a screenshot of each selected menu")
     parser.add_argument('-u', '--upload', action='store_true', help="upload the result to Mattermost")
+
     return parser.parse_args()
 
 
@@ -277,15 +277,10 @@ def print_relevant_menus(menu_list, print_list, vegetarian, vegan, long_output):
     return output_print_string
 
 
-def print_headline(text):
-    output_print_string = ''
-    output_print_string += '# ' + text + ' #\n\n'
-    return output_print_string
-
-
-def screenshot(url, menu_list, relative_list, print_list, output_dir, filename_prefix):
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+def take_screenshots(url, menu_list, relative_list, print_list, output_dir, filename_prefix):
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+    os.makedirs(output_dir)
 
     options = webdriver.FirefoxOptions()
     options.add_argument("--headless=new")
@@ -294,6 +289,7 @@ def screenshot(url, menu_list, relative_list, print_list, output_dir, filename_p
     menu_accordion_items = browser.find_elements(
         By.CSS_SELECTOR, '.preventBreak')
 
+    screenshot_list = []
     for i in range(len(print_list)):
         if print_list[i]:
 
@@ -301,23 +297,41 @@ def screenshot(url, menu_list, relative_list, print_list, output_dir, filename_p
                 menu_accordion_items[i].click()
                 time.sleep(1)
             file_name = f'{filename_prefix}-{menu_list[i].date.strftime("%Y-%m-%d")}'
-            menu_accordion_items[i].screenshot(f'{output_dir}/{file_name}.png')
+            file_path = f'{output_dir}/{file_name}.png'
+            menu_accordion_items[i].screenshot(file_path)
+            screenshot_list.append(file_path)
 
     browser.close()
+    return screenshot_list
 
 
-def post_mattermost(message):
-    payload = {
+def post_mattermost(message, attachments = []):
+    if len(attachments) > 5: # terminate when too many attachments are provided
+        print('Error: Upload of more than five attachments is not supported by Mattermost')
+        sys.exit(1)
+    elif len(attachments) == 0 and message == '': # return when nothing to post
+        return
+
+    session = requests.Session()
+    session.headers.update({"Authorization": f"Bearer {mattermost_token}"})
+
+    upload_file_ids = []
+
+    for file_name in attachments:
+        upload_form_data = {
+            'channel_id': ('', mattermost_channel_id),
+            'client_ids': ('', file_name),
+            'files': (open(file_name, 'rb')),
+        }
+        response = session.post(mattermost_upload_url, files=upload_form_data)
+        upload_file_ids.append(response.json()['file_infos'][0]['id'])
+
+    post_data = {
         'channel_id': mattermost_channel_id,
         'message': message,
+        'file_ids': upload_file_ids
     }
-    headers = {
-        'Content-Type': "application/json",
-        'Accept': "application/json",
-        'Authorization': f"Bearer {mattermost_token}"
-    }
-
-    requests.post(mattermost_post_url, headers=headers, json=payload)
+    response = session.post(mattermost_post_url, data=json.dumps(post_data))
 
 
 if __name__ == '__main__':
