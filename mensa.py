@@ -1,4 +1,4 @@
-#!python/bin/python
+#!/opt/mensa/python/bin/python
 import argparse
 import datetime
 import requests
