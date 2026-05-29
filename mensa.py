@@ -13,6 +13,10 @@ from selenium.webdriver.common.by import By
 mensa_url = 'https://www.studierendenwerk-aachen.de/speiseplaene/$(MENSA_NAME)-w$(LANG_MODIFIER).html'
 lang_modifiers = {'en': '-en', 'de': ''}
 
+mattermost_post_url = 'https://mattermost.vr.rwth-aachen.de/api/v4/posts'
+mattermost_channel_id = '44n1ysibmtbxme65pmhbwoofzy' # test channel
+mattermost_token = open('secret/mattermost-token.txt', 'r').readline()
+
 mensa_names = {'vita': ('vita', 'Mensa Vita'),
                'acad': ('academica', 'Mensa Academica'),
                'ahor': ('ahornstrasse', 'Mensa Ahornstraße'),
@@ -22,9 +26,6 @@ mensa_names = {'vita': ('vita', 'Mensa Vita'),
                'eupe': ('eupenerstrasse', 'Mensa Eupener Straße'),
                'sued': ('suedpark', 'Mensa Südpark'),
                'juel': ('juelich', 'Mensa Jülich')}
-
-empty_message = {'en': 'No menu is offered today',
-                 'de': 'Heute gibt es kein Angebot'}
 
 weekdays = {'en': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
             'de': ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag']}
@@ -114,8 +115,8 @@ def main():
                 menu_list, print_list, arguments.vegetarian, arguments.vegan, arguments.long)
             print(print_string)
 
-    else:
-        print(empty_message[arguments.lang])
+            if arguments.upload:
+                post_mattermost(print_string) 
 
 
 def parse_command_arguments():
@@ -144,6 +145,7 @@ def parse_command_arguments():
                         choices=['en', 'de'], default='en')
     parser.add_argument('-s', '--screenshot', action='store_true',
                         help="save a screenshot of each selected menu")
+    parser.add_argument('-u', '--upload', action='store_true', help="upload the result to Mattermost")
     return parser.parse_args()
 
 
@@ -275,6 +277,12 @@ def print_relevant_menus(menu_list, print_list, vegetarian, vegan, long_output):
     return output_print_string
 
 
+def print_headline(text):
+    output_print_string = ''
+    output_print_string += '# ' + text + ' #\n\n'
+    return output_print_string
+
+
 def screenshot(url, menu_list, relative_list, print_list, output_dir, filename_prefix):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -298,12 +306,19 @@ def screenshot(url, menu_list, relative_list, print_list, output_dir, filename_p
     browser.close()
 
 
-def print_headline(text):
-    output_print_string = ''
-    output_print_string += (len(text) + 4) * '#' + '\n'
-    output_print_string += '# ' + text + ' #\n'
-    output_print_string += (len(text) + 4) * '#' + '\n\n'
-    return output_print_string
+def post_mattermost(message):
+    payload = {
+        'channel_id': mattermost_channel_id,
+        'message': message,
+    }
+    headers = {
+        'Content-Type': "application/json",
+        'Accept': "application/json",
+        'Authorization': f"Bearer {mattermost_token}"
+    }
+
+    requests.post(mattermost_post_url, headers=headers, json=payload)
+
 
 if __name__ == '__main__':
     main()
