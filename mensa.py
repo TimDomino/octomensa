@@ -17,8 +17,8 @@ lang_modifiers = {'en': '-en', 'de': ''}
 
 mattermost_post_url = 'https://mattermost.vr.rwth-aachen.de/api/v4/posts'
 mattermost_upload_url = 'https://mattermost.vr.rwth-aachen.de/api/v4/files'
-mattermost_channel_id = '44n1ysibmtbxme65pmhbwoofzy' # test channel
-mattermost_token = open('secret/mattermost-token.txt', 'r').readline()
+mattermost_channel_id = '44n1ysibmtbxme65pmhbwoofzy'  # test channel
+mattermost_token = open('secret/mattermost-token.txt', 'r').readline().replace('\n','')
 
 mensa_names = {'vita': ('vita', 'Mensa Vita'),
                'acad': ('academica', 'Mensa Academica'),
@@ -37,7 +37,7 @@ date_format = '%d.%m.%Y'
 screenshot_directory = 'output/'
 
 today = datetime.datetime.today().replace(
-        hour=0, minute=0, second=0, microsecond=0)
+    hour=0, minute=0, second=0, microsecond=0)
 
 
 class MenuItem:
@@ -101,10 +101,10 @@ def main():
         relative_list, arguments.num_past, arguments.num_future)
 
     if print_list.count(True) > 0:
-        
+
         if arguments.screenshot:
             screenshot_list = take_screenshots(get_url, menu_list, relative_list, print_list,
-                                screenshot_directory, arguments.mensa)
+                                               screenshot_directory, arguments.mensa)
             if arguments.upload:
                 post_mattermost('', screenshot_list)
 
@@ -113,7 +113,7 @@ def main():
                 menu_list, print_list, arguments.vegetarian, arguments.vegan, arguments.long)
 
             if arguments.upload:
-                post_mattermost(print_string) 
+                post_mattermost(print_string)
             else:
                 print(print_string)
 
@@ -144,7 +144,8 @@ def parse_command_arguments():
                         choices=['en', 'de'], default='en')
     parser.add_argument('-s', '--screenshot', action='store_true',
                         help="save a screenshot of each selected menu")
-    parser.add_argument('-u', '--upload', action='store_true', help="upload the result to Mattermost")
+    parser.add_argument('-u', '--upload', action='store_true',
+                        help="upload the result to Mattermost")
 
     return parser.parse_args()
 
@@ -272,7 +273,7 @@ def print_relevant_menus(menu_list, print_list, vegetarian, vegan, long_output):
     for i in range(len(print_list)):
         if print_list[i]:
             output_print_string += menu_list[i].__str__(vegetarian=vegetarian,
-                  vegan=vegan, compact=not long_output) + '\n'
+                                                        vegan=vegan, compact=not long_output) + '\n'
 
     return output_print_string
 
@@ -293,7 +294,8 @@ def take_screenshots(url, menu_list, relative_list, print_list, output_dir, file
     for i in range(len(print_list)):
         if print_list[i]:
 
-            if relative_list[i] != 0: # only click if not today because it is open already otherwise
+            # only click if not today because it is open already otherwise
+            if relative_list[i] != 0:
                 menu_accordion_items[i].click()
                 time.sleep(1)
             file_name = f'{filename_prefix}-{menu_list[i].date.strftime("%Y-%m-%d")}'
@@ -305,11 +307,11 @@ def take_screenshots(url, menu_list, relative_list, print_list, output_dir, file
     return screenshot_list
 
 
-def post_mattermost(message, attachments = []):
-    if len(attachments) > 5: # terminate when too many attachments are provided
+def post_mattermost(message, attachments=[]):
+    if len(attachments) > 5:  # terminate when too many attachments are provided
         print('Error: Upload of more than five attachments is not supported by Mattermost')
         sys.exit(1)
-    elif len(attachments) == 0 and message == '': # return when nothing to post
+    elif len(attachments) == 0 and message == '':  # return when nothing to post
         return
 
     session = requests.Session()
