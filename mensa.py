@@ -12,13 +12,15 @@ import json
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
+script_path = os.path.dirname(__file__) 
+
 mensa_url = 'https://www.studierendenwerk-aachen.de/speiseplaene/$(MENSA_NAME)-w$(LANG_MODIFIER).html'
 lang_modifiers = {'en': '-en', 'de': ''}
 
 mattermost_post_url = 'https://mattermost.vr.rwth-aachen.de/api/v4/posts'
 mattermost_upload_url = 'https://mattermost.vr.rwth-aachen.de/api/v4/files'
 mattermost_channel_id = '44n1ysibmtbxme65pmhbwoofzy'  # test channel
-mattermost_token = open(os.path.join(os.path.dirname(__file__), 'secret/mattermost-token.txt'), 'r').readline().replace('\n','')
+mattermost_token = open(os.path.join(script_path, 'secret/mattermost-token.txt'), 'r').readline().replace('\n','')
 
 mensa_names = {'vita': ('vita', 'Mensa Vita'),
                'acad': ('academica', 'Mensa Academica'),
@@ -34,7 +36,7 @@ weekdays = {'en': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
             'de': ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag']}
 
 date_format = '%d.%m.%Y'
-screenshot_directory = 'output/'
+screenshot_directory = os.path.join(script_path, 'output/')
 
 today = datetime.datetime.today().replace(
     hour=0, minute=0, second=0, microsecond=0)
