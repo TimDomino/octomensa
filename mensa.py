@@ -284,7 +284,7 @@ def take_screenshots(url, menu_list, relative_list, print_list, output_dir, file
     os.makedirs(output_dir)
 
     options = webdriver.FirefoxOptions()
-    options.add_argument("--headless=new")
+    options.add_argument("--headless")
     browser = webdriver.Firefox(options=options)
     browser.get(url)
     menu_accordion_items = browser.find_elements(
