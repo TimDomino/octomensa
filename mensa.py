@@ -19,7 +19,8 @@ lang_modifiers = {'en': '-en', 'de': ''}
 
 mattermost_post_url = 'https://mattermost.vr.rwth-aachen.de/api/v4/posts'
 mattermost_upload_url = 'https://mattermost.vr.rwth-aachen.de/api/v4/files'
-mattermost_channel_id = '15tjecufht8s5mxcrt3u967cyy'  # Mensa channel
+#mattermost_channel_id = '15tjecufht8s5mxcrt3u967cyy'  # Mensa channel
+mattermost_channel_id = '44n1ysibmtbxme65pmhbwoofzy' # Test channel
 mattermost_token = open(os.path.join(script_path, 'secret/mattermost-token.txt'), 'r').readline().replace('\n','')
 
 mensa_names = {'vita': ('vita', 'Mensa Vita'),
@@ -92,12 +93,39 @@ class DayMenu:
 def main():
     arguments = parse_command_arguments()
 
+    if arguments.lang == 'bi':
+        languages_to_process = ['de', 'en']
+    else:
+        languages_to_process = [arguments.lang]
+
+    prepare_output_directory(screenshot_directory)
+
+    final_message = ''
+    final_file_list = []
+    for lang in languages_to_process:
+        (message, file_list) = process_query_for_language(lang, arguments)
+        final_message += message
+        final_file_list = final_file_list + file_list
+
+    if arguments.upload:
+        post_mattermost(final_message, final_file_list)
+    elif len(final_message) > 0:
+        print(final_message)
+
+
+def prepare_output_directory(output_dir):
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+    os.makedirs(output_dir)
+
+
+def process_query_for_language(lang, arguments):
     get_url = mensa_url.replace(
         '$(MENSA_NAME)', mensa_names[arguments.mensa][0])
     get_url = get_url.replace(
-        '$(LANG_MODIFIER)', lang_modifiers[arguments.lang])
+        '$(LANG_MODIFIER)', lang_modifiers[lang])
 
-    menu_list = get_all_menus(get_url, arguments.lang)
+    menu_list = get_all_menus(get_url, lang)
     relative_list = get_relative_list(menu_list)
     print_list = get_print_list(
         relative_list, arguments.num_past, arguments.num_future)
@@ -105,19 +133,16 @@ def main():
     if print_list.count(True) > 0:
 
         if arguments.screenshot:
-            screenshot_list = take_screenshots(get_url, menu_list, relative_list, print_list,
-                                               screenshot_directory, arguments.mensa)
-            if arguments.upload:
-                post_mattermost('', screenshot_list)
+            screenshot_list = take_screenshots(get_url, lang, menu_list, relative_list, 
+                                               print_list, screenshot_directory, arguments.mensa)
+            return('', screenshot_list)
 
         else:
             print_string = print_relevant_menus(
                 menu_list, print_list, arguments.vegetarian, arguments.vegan, arguments.long)
-
-            if arguments.upload:
-                post_mattermost(print_string)
-            else:
-                print(print_string)
+            return(print_string, [])
+            
+    return ('', [])
 
 
 def parse_command_arguments():
@@ -143,7 +168,7 @@ def parse_command_arguments():
     parser.add_argument('-l', '--long', action='store_true',
                         help="use long instead of compact output, including dish category")
     parser.add_argument('-lg', '--lang', help="select the language to retrieve, default is 'en'",
-                        choices=['en', 'de'], default='en')
+                        choices=['en', 'de', 'bi'], default='en')
     parser.add_argument('-s', '--screenshot', action='store_true',
                         help="save a screenshot of each selected menu")
     parser.add_argument('-u', '--upload', action='store_true',
@@ -280,11 +305,7 @@ def print_relevant_menus(menu_list, print_list, vegetarian, vegan, long_output):
     return output_print_string
 
 
-def take_screenshots(url, menu_list, relative_list, print_list, output_dir, filename_prefix):
-    if os.path.exists(output_dir):
-        shutil.rmtree(output_dir)
-    os.makedirs(output_dir)
-
+def take_screenshots(url, lang, menu_list, relative_list, print_list, output_dir, filename_prefix):
     options = webdriver.FirefoxOptions()
     options.add_argument("--headless")
     browser = webdriver.Firefox(options=options)
@@ -300,7 +321,7 @@ def take_screenshots(url, menu_list, relative_list, print_list, output_dir, file
             if relative_list[i] != 0:
                 menu_accordion_items[i].click()
                 time.sleep(1)
-            file_name = f'{filename_prefix}-{menu_list[i].date.strftime("%Y-%m-%d")}'
+            file_name = f'{filename_prefix}-{menu_list[i].date.strftime("%Y-%m-%d")}-{lang}'
             file_path = f'{output_dir}/{file_name}.png'
             menu_accordion_items[i].screenshot(file_path)
             screenshot_list.append(file_path)
