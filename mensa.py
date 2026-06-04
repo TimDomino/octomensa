@@ -4,10 +4,11 @@ import datetime
 import requests
 import bs4
 import os
+import json
 import shutil
+import subprocess
 import sys
 import time
-import json
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -92,14 +93,15 @@ class DayMenu:
 
 def main():
     arguments = parse_command_arguments()
+    if arguments.screenshot:
+        prepare_output_directory(screenshot_directory)
 
     if arguments.lang == 'bi':
         languages_to_process = ['de', 'en']
     else:
         languages_to_process = [arguments.lang]
 
-    prepare_output_directory(screenshot_directory)
-
+    ## main part: iterate through languages and create desired results
     final_message = ''
     final_file_list = []
     for lang in languages_to_process:
@@ -107,6 +109,11 @@ def main():
         final_message += message
         final_file_list = final_file_list + file_list
 
+    ## stich images together in bilingual mode
+    if arguments.lang == 'bi' and arguments.screenshot:
+        final_file_list = stitch_screenshots(final_file_list)
+
+    ## print or post results
     if arguments.upload:
         post_mattermost(final_message, final_file_list)
     elif len(final_message) > 0:
@@ -328,6 +335,19 @@ def take_screenshots(url, lang, menu_list, relative_list, print_list, output_dir
 
     browser.close()
     return screenshot_list
+
+
+def stitch_screenshots(screenshot_list):
+    output_file_list = []
+
+    for file_name in screenshot_list:
+        if '-de.png' in file_name:
+            second_file_name = file_name.replace('-de.png', '-en.png')
+            stitched_file_name = file_name.replace('-de.png', '-bi.png')
+            subprocess.run(['montage', file_name, second_file_name, '-tile', '2x1', '-geometry', '+7+0', '-gravity', 'North', '-background', 'none', stitched_file_name])
+            output_file_list.append(stitched_file_name)
+
+    return output_file_list
 
 
 def post_mattermost(message, attachments=[]):
