@@ -13,82 +13,13 @@ import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
+from src.MenuItem import MenuItem
+from src.MenuList import MenuList
+from src.Constants import *
+
 script_path = os.path.dirname(__file__) 
-
-mensa_url = 'https://www.studierendenwerk-aachen.de/speiseplaene/$(MENSA_NAME)-w$(LANG_MODIFIER).html'
-lang_modifiers = {'en': '-en', 'de': ''}
-
-mattermost_post_url = 'https://mattermost.vr.rwth-aachen.de/api/v4/posts'
-mattermost_upload_url = 'https://mattermost.vr.rwth-aachen.de/api/v4/files'
-#mattermost_channel_id = '15tjecufht8s5mxcrt3u967cyy'  # Mensa channel
-mattermost_channel_id = '44n1ysibmtbxme65pmhbwoofzy' # Test channel
-mattermost_token = open(os.path.join(script_path, 'secret/mattermost-token.txt'), 'r').readline().replace('\n','')
-
-mensa_names = {'vita': ('vita', 'Mensa Vita'),
-               'acad': ('academica', 'Mensa Academica'),
-               'ahor': ('ahornstrasse', 'Mensa Ahornstraße'),
-               'temp': ('templergraben', 'Bistro Templergraben'),
-               'baye': ('bayernallee', 'Mensa Bayernallee'),
-               'kmac': ('kmac', 'Mensa KMAC'),
-               'eupe': ('eupenerstrasse', 'Mensa Eupener Straße'),
-               'sued': ('suedpark', 'Mensa Südpark'),
-               'juel': ('juelich', 'Mensa Jülich')}
-
-weekdays = {'en': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-            'de': ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag']}
-
-date_format = '%d.%m.%Y'
-screenshot_directory = os.path.join(script_path, 'output/')
-
 today = datetime.datetime.today().replace(
     hour=0, minute=0, second=0, microsecond=0)
-
-
-class MenuItem:
-    item_type = ""
-    description = ""
-    price = ""
-    vegetarian = False
-    vegan = False
-
-    def __init__(self, item_type, description, price, vegetarian=False, vegan=False):
-        self.item_type = item_type
-        self.description = description
-        self.price = price
-        self.vegetarian = vegetarian
-        self.vegan = vegan
-
-    def __str__(self, compact=False):
-        leader = ''
-        if compact:
-            leader = '- '
-
-        if compact:
-            return f'{leader}{self.description} | *{self.price}*\n'
-        else:
-            return f'**{self.item_type}**\n{leader}{self.description}\n*{self.price}*\n\n'
-
-
-class DayMenu:
-    date = datetime.datetime.today()
-    language = 'en'
-    menu_items = []
-
-    def __init__(self, date, language):
-        self.date = date
-        self.language = language
-        self.menu_items = []
-
-    def __str__(self, vegetarian=False, vegan=False, compact=False):
-        final_string = f'{weekdays[self.language][self.date.weekday()]}, {self.date.strftime(date_format)}\n'
-        final_string += (len(final_string)+1) * '-' + '\n'
-
-        for menu_item in self.menu_items:
-            if not (vegetarian and menu_item.vegetarian == False) and \
-               not (vegan and menu_item.vegan == False):
-                final_string += menu_item.__str__(compact)
-
-        return final_string
 
 
 def main():
@@ -214,7 +145,7 @@ def get_day_menu(menu_root_node, language):
     date_string = get_text_or_default(menu_root_node.find('a'))
     date_string = date_string.split(',')[1].lstrip()  # remove weekday
     datetime_object = datetime.datetime.strptime(date_string, date_format)
-    day_menu = DayMenu(datetime_object, language)
+    day_menu = MenuList(datetime_object, language)
 
     menu_table = menu_root_node.find('table', 'menues')
 
