@@ -5,6 +5,7 @@ import requests
 import bs4
 import os
 import json
+import schedule
 import shutil
 import subprocess
 import sys
@@ -17,13 +18,25 @@ from src.MenuItem import MenuItem
 from src.MenuList import MenuList
 from src.Constants import *
 
-script_path = os.path.dirname(__file__) 
+script_path = os.path.dirname(__file__)
 today = datetime.datetime.today().replace(
     hour=0, minute=0, second=0, microsecond=0)
 
 
 def main():
     arguments = parse_command_arguments()
+
+    if arguments.daemon:
+        schedule.every().day.at('08:00').do(retrive_and_output, arguments=arguments)
+        # schedule.every().minute.at(':00').do(retrive_and_output, arguments=arguments)
+        while True:
+            schedule.run_pending()
+            time.sleep(5)
+    else:
+        retrive_and_output(arguments)
+
+
+def retrive_and_output(arguments):
     if arguments.screenshot:
         prepare_output_directory(screenshot_directory)
 
@@ -32,7 +45,7 @@ def main():
     else:
         languages_to_process = [arguments.lang]
 
-    ## main part: iterate through languages and create desired results
+    # main part: iterate through languages and create desired results
     final_message = ''
     final_file_list = []
     for lang in languages_to_process:
@@ -40,11 +53,11 @@ def main():
         final_message += message
         final_file_list = final_file_list + file_list
 
-    ## stich images together in bilingual mode
+    # stich images together in bilingual mode
     if arguments.lang == 'bi' and arguments.screenshot:
         final_file_list = stitch_screenshots(final_file_list)
 
-    ## print or post results
+    # print or post results
     if arguments.upload:
         post_mattermost(final_message, final_file_list)
     elif len(final_message) > 0:
@@ -71,15 +84,15 @@ def process_query_for_language(lang, arguments):
     if print_list.count(True) > 0:
 
         if arguments.screenshot:
-            screenshot_list = take_screenshots(get_url, lang, menu_list, relative_list, 
+            screenshot_list = take_screenshots(get_url, lang, menu_list, relative_list,
                                                print_list, screenshot_directory, arguments.mensa)
-            return('', screenshot_list)
+            return ('', screenshot_list)
 
         else:
             print_string = print_relevant_menus(
                 menu_list, print_list, arguments.vegetarian, arguments.vegan, arguments.long)
-            return(print_string, [])
-            
+            return (print_string, [])
+
     return ('', [])
 
 
@@ -111,6 +124,8 @@ def parse_command_arguments():
                         help="save a screenshot of each selected menu")
     parser.add_argument('-u', '--upload', action='store_true',
                         help="upload the result to Mattermost")
+    parser.add_argument('-d', '--daemon', action='store_true',
+                        help="run as daemon to run plan retrieval in regular intervals")
 
     return parser.parse_args()
 
@@ -275,7 +290,8 @@ def stitch_screenshots(screenshot_list):
         if '-de.png' in file_name:
             second_file_name = file_name.replace('-de.png', '-en.png')
             stitched_file_name = file_name.replace('-de.png', '-bi.png')
-            subprocess.run(['montage', file_name, second_file_name, '-tile', '2x1', '-geometry', '+7+0', '-gravity', 'North', '-background', 'none', stitched_file_name])
+            subprocess.run(['montage', file_name, second_file_name, '-tile', '2x1', '-geometry',
+                           '+7+0', '-gravity', 'North', '-background', 'none', stitched_file_name])
             output_file_list.append(stitched_file_name)
 
     return output_file_list

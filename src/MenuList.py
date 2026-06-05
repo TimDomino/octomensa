@@ -1,6 +1,7 @@
 import datetime
 from .Constants import *
 
+
 class MenuList:
     date = datetime.datetime.today()
     language = 'en'
