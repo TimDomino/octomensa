@@ -1,0 +1,5 @@
+services:
+  mensa:
+    build: .
+    environment:
+      - TZ=Europe/Berlin
