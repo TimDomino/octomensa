@@ -26,13 +26,13 @@ today = datetime.datetime.today().replace(
 def main():
     arguments = parse_command_arguments()
 
-    if arguments.daemon:
-        schedule.every().day.at('08:00').do(retrive_and_output, arguments=arguments)
-        # schedule.every().minute.at(':00').do(retrive_and_output, arguments=arguments)
+    if arguments.daemon_timestring:  # run in daemon mode
+        schedule.every().day.at(arguments.daemon_timestring).do(
+            retrive_and_output, arguments=arguments)
         while True:
             schedule.run_pending()
             time.sleep(5)
-    else:
+    else:  # run once
         retrive_and_output(arguments)
 
 
@@ -124,8 +124,8 @@ def parse_command_arguments():
                         help="save a screenshot of each selected menu")
     parser.add_argument('-u', '--upload', action='store_true',
                         help="upload the result to Mattermost")
-    parser.add_argument('-d', '--daemon', action='store_true',
-                        help="run as daemon to run plan retrieval in regular intervals")
+    parser.add_argument('-d', '--daemon', action='store',
+                        help='run as daemon to retrieve plan every day at the given clock time string, e.g., 08:00', dest='daemon_timestring')
 
     return parser.parse_args()
 
