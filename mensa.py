@@ -27,16 +27,9 @@ def main():
     arguments = parse_command_arguments()
 
     if arguments.daemon_timestring:  # run in daemon mode
-        schedule.every().monday.at(arguments.daemon_timestring).do(
-            retrive_and_output, arguments=arguments)
-        schedule.every().tuesday.at(arguments.daemon_timestring).do(
-            retrive_and_output, arguments=arguments)
-        schedule.every().wednesday.at(arguments.daemon_timestring).do(
-            retrive_and_output, arguments=arguments)
-        schedule.every().thursday.at(arguments.daemon_timestring).do(
-            retrive_and_output, arguments=arguments)
-        schedule.every().friday.at(arguments.daemon_timestring).do(
-            retrive_and_output, arguments=arguments)
+        schedule.every().day.at(arguments.daemon_timestring).do(
+            every_workday, arguments=arguments)
+
         while True:
             schedule.run_pending()
             time.sleep(5)
@@ -76,6 +69,11 @@ def parse_command_arguments():
                         help='run as daemon to retrieve plan every day at the given clock time string, e.g., 08:00', dest='daemon_timestring')
 
     return parser.parse_args()
+
+
+def every_workday(arguments):
+    if today.weekday() < 5: # 0 is Monday, 6 is Sunday
+        retrive_and_output(arguments)
 
 
 def retrive_and_output(arguments):
