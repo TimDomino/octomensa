@@ -296,7 +296,7 @@ def take_screenshots(url, lang, menu_list, relative_list, print_list, output_dir
             menu_accordion_items[i].screenshot(file_path)
             screenshot_list.append(file_path)
 
-    browser.close()
+    browser.quit()
     return screenshot_list
 
 
