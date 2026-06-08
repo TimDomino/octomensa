@@ -29,6 +29,7 @@ def main():
     if arguments.daemon_timestring:  # run in daemon mode
         schedule.every().day.at(arguments.daemon_timestring).do(
             every_workday, arguments=arguments)
+        print(f'Running in daemon mode, retrieval every workday at {arguments.daemon_timestring}')
 
         while True:
             schedule.run_pending()
@@ -72,8 +73,15 @@ def parse_command_arguments():
 
 
 def every_workday(arguments):
+    print(f'Everyday callback started on {today.strftime("%A, %d/%m/%y")}')
+    print(f"Today's weekday is {today.weekday()}")
     if today.weekday() < 5: # 0 is Monday, 6 is Sunday
+        print('Workday. Continue.')
         retrive_and_output(arguments)
+    else:
+        print('Not a workday. Skip.')
+
+    print('Everyday callback terminated')
 
 
 def retrive_and_output(arguments):
@@ -95,11 +103,14 @@ def retrive_and_output(arguments):
 
     # stich images together in bilingual mode
     if arguments.lang == 'bi' and arguments.screenshot:
+        print('Stiching screenshots together')
         final_file_list = stitch_screenshots(final_file_list)
 
     # print or post results
     if arguments.upload:
+        print('Uploading result to Mattermost')
         post_mattermost(final_message, final_file_list)
+        print('Upload completed')
     elif len(final_message) > 0:
         print(final_message)
 
