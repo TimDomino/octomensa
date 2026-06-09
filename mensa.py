@@ -19,8 +19,6 @@ from src.MenuList import MenuList
 from src.Constants import *
 
 script_path = os.path.dirname(__file__)
-today = datetime.datetime.today().replace(
-    hour=0, minute=0, second=0, microsecond=0)
 
 
 def main():
@@ -75,6 +73,8 @@ def parse_command_arguments():
 
 
 def every_workday(arguments):
+    today = datetime.datetime.today().replace(
+        hour=0, minute=0, second=0, microsecond=0)
     print(f'Everyday callback started on {today.strftime("%A, %d/%m/%y")}')
     print(f"Today's weekday is {today.weekday()}")
     if today.weekday() < 5: # 0 is Monday, 6 is Sunday
@@ -231,6 +231,8 @@ def get_nutrition(html):
 
 
 def get_relative_list(menu_list):
+    today = datetime.datetime.today().replace(
+        hour=0, minute=0, second=0, microsecond=0)
     relative_list = list(map(lambda menu: (menu.date-today).days, menu_list))
     relative_list = list(map(lambda id: sign(id), relative_list))
     past_days = relative_list.count(-1)
