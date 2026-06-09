@@ -293,8 +293,10 @@ def take_screenshots(url, lang, menu_list, relative_list, print_list, output_dir
     screenshot_list = []
     for i in range(len(print_list)):
         if print_list[i]:
-            menu_accordion_items[i].click()
-            time.sleep(1)
+
+            if not (len(screenshot_list) == 0 and relative_list[i] == 0):  # if today is first screenshot, then do not click
+                menu_accordion_items[i].click()
+                time.sleep(1)
                 
             file_name = f'{filename_prefix}-{menu_list[i].date.strftime("%Y-%m-%d")}-{lang}'
             file_path = f'{output_dir}/{file_name}.png'
