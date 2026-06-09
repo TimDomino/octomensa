@@ -293,11 +293,9 @@ def take_screenshots(url, lang, menu_list, relative_list, print_list, output_dir
     screenshot_list = []
     for i in range(len(print_list)):
         if print_list[i]:
-
-            # only click if not today because it is open already otherwise
-            if relative_list[i] != 0:
-                menu_accordion_items[i].click()
-                time.sleep(1)
+            menu_accordion_items[i].click()
+            time.sleep(1)
+                
             file_name = f'{filename_prefix}-{menu_list[i].date.strftime("%Y-%m-%d")}-{lang}'
             file_path = f'{output_dir}/{file_name}.png'
             menu_accordion_items[i].screenshot(file_path)
