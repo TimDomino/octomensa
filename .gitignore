@@ -2,3 +2,4 @@ python/*
 output/*
 secret/*
 *__pycache__*
+venv/*

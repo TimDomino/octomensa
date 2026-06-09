@@ -1,5 +1,6 @@
 services:
   mensa:
     build: .
+    restart: unless-stopped
     environment:
       - TZ=Europe/Berlin
