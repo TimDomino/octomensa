@@ -7,7 +7,7 @@ lang_modifiers = {'en': '-en', 'de': ''}
 
 mattermost_post_url = 'https://mattermost.vr.rwth-aachen.de/api/v4/posts'
 mattermost_upload_url = 'https://mattermost.vr.rwth-aachen.de/api/v4/files'
-# mattermost_channel_id = '15tjecufht8s5mxcrt3u967cyy'  # Mensa channel
+#mattermost_channel_id = '15tjecufht8s5mxcrt3u967cyy'  # Mensa channel
 mattermost_channel_id = '44n1ysibmtbxme65pmhbwoofzy'  # Test channel
 mattermost_token = open(os.path.join(
     subscript_path, '../secret/mattermost-token.txt'), 'r').readline().replace('\n', '')

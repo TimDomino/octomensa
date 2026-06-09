@@ -66,6 +66,8 @@ def parse_command_arguments():
                         help="save a screenshot of each selected menu")
     parser.add_argument('-u', '--upload', action='store_true',
                         help="upload the result to Mattermost")
+    parser.add_argument('-c', '--channel', action='store',
+                        help="overrides the channel id given in src/Constants.py for debugging")
     parser.add_argument('-d', '--daemon', action='store',
                         help='run as daemon to retrieve plan every day at the given clock time string, e.g., 08:00', dest='daemon_timestring')
 
@@ -109,7 +111,10 @@ def retrive_and_output(arguments):
     # print or post results
     if arguments.upload:
         print('Uploading result to Mattermost')
-        post_mattermost(final_message, final_file_list)
+        channel_id = mattermost_channel_id
+        if arguments.channel:
+            channel_id = arguments.channel
+        post_mattermost(channel_id, final_message, final_file_list)
         print('Upload completed')
     elif len(final_message) > 0:
         print(final_message)
@@ -314,7 +319,7 @@ def stitch_screenshots(screenshot_list):
     return output_file_list
 
 
-def post_mattermost(message, attachments=[]):
+def post_mattermost(channel_id, message, attachments=[]):
     if len(attachments) > 5:  # terminate when too many attachments are provided
         print('Error: Upload of more than five attachments is not supported by Mattermost')
         sys.exit(1)
@@ -328,7 +333,7 @@ def post_mattermost(message, attachments=[]):
 
     for file_name in attachments:
         upload_form_data = {
-            'channel_id': ('', mattermost_channel_id),
+            'channel_id': ('', channel_id),
             'client_ids': ('', file_name),
             'files': (open(file_name, 'rb')),
         }
@@ -336,7 +341,7 @@ def post_mattermost(message, attachments=[]):
         upload_file_ids.append(response.json()['file_infos'][0]['id'])
 
     post_data = {
-        'channel_id': mattermost_channel_id,
+        'channel_id': channel_id,
         'message': message,
         'file_ids': upload_file_ids
     }
