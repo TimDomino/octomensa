@@ -14,4 +14,4 @@ COPY mensa.py /app/mensa.py
 COPY src /app/src
 COPY secret /app/secret
 
-CMD python -u mensa.py -lg bi -su -d 08:00
+CMD python -u mensa.py -lg bi -su 15tjecufht8s5mxcrt3u967cyy -d 08:00

@@ -20,6 +20,9 @@ from src.Constants import *
 
 script_path = os.path.dirname(__file__)
 
+# mattermost channel ids
+# 15tjecufht8s5mxcrt3u967cyy    Menza Gäng
+# 44n1ysibmtbxme65pmhbwoofzy    Mensa Test
 
 def main():
     arguments = parse_command_arguments()
@@ -62,8 +65,8 @@ def parse_command_arguments():
                         choices=['en', 'de', 'bi'], default='en')
     parser.add_argument('-s', '--screenshot', action='store_true',
                         help="save a screenshot of each selected menu")
-    parser.add_argument('-u', '--upload', action='store_true',
-                        help="upload the result to Mattermost")
+    parser.add_argument('-u', '--upload', action='store',
+                        help="upload the result to Mattermost, takes the channel ID as parameter")
     parser.add_argument('-c', '--channel', action='store',
                         help="overrides the channel id given in src/Constants.py for debugging")
     parser.add_argument('-d', '--daemon', action='store',
@@ -111,10 +114,7 @@ def retrive_and_output(arguments):
     # print or post results
     if arguments.upload:
         print('Uploading result to Mattermost')
-        channel_id = mattermost_channel_id
-        if arguments.channel:
-            channel_id = arguments.channel
-        post_mattermost(channel_id, final_message, final_file_list)
+        post_mattermost(arguments.upload, final_message, final_file_list)
         print('Upload completed')
     elif len(final_message) > 0:
         print(final_message)
