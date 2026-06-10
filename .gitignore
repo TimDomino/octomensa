@@ -3,3 +3,4 @@ output/*
 secret/*
 *__pycache__*
 venv/*
+site/mensa.html

@@ -140,7 +140,7 @@ def process_query_for_language(lang, arguments):
     if print_list.count(True) > 0:
 
         if arguments.screenshot:
-            screenshot_list = take_screenshots(get_url, lang, menu_list, relative_list,
+            screenshot_list = take_screenshots(lang, menu_list, relative_list,
                                                print_list, screenshot_directory, arguments.mensa)
             return ('', screenshot_list)
 
@@ -170,6 +170,8 @@ def download_current_menu_data(url):
     response.encoding = response.apparent_encoding
 
     if response.status_code == 200:
+        with open(download_site_path, 'w') as download_file:
+            download_file.write(response.text)
         return bs4.BeautifulSoup(response.text, 'html.parser')
 
     else:
@@ -282,11 +284,11 @@ def print_relevant_menus(menu_list, print_list, vegetarian, vegan, long_output):
     return output_print_string
 
 
-def take_screenshots(url, lang, menu_list, relative_list, print_list, output_dir, filename_prefix):
+def take_screenshots(lang, menu_list, relative_list, print_list, output_dir, filename_prefix):
     options = webdriver.FirefoxOptions()
     options.add_argument("--headless")
     browser = webdriver.Firefox(options=options)
-    browser.get(url)
+    browser.get('file://' + download_site_path)
     menu_accordion_items = browser.find_elements(
         By.CSS_SELECTOR, '.preventBreak')
 

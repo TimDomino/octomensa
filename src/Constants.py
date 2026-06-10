@@ -25,3 +25,4 @@ weekdays = {'en': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
 
 date_format = '%d.%m.%Y'
 screenshot_directory = os.path.join(subscript_path, '../output/')
+download_site_path = os.path.join(subscript_path, '../site/mensa.html')
