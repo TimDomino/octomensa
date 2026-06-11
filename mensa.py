@@ -67,8 +67,6 @@ def parse_command_arguments():
                         help="save a screenshot of each selected menu")
     parser.add_argument('-u', '--upload', action='store',
                         help="upload the result to Mattermost, takes the channel ID as parameter")
-    parser.add_argument('-c', '--channel', action='store',
-                        help="overrides the channel id given in src/Constants.py for debugging")
     parser.add_argument('-d', '--daemon', action='store',
                         help='run as daemon to retrieve plan every day at the given clock time string, e.g., 08:00', dest='daemon_timestring')
 
@@ -132,7 +130,7 @@ def process_query_for_language(lang, arguments):
     get_url = get_url.replace(
         '$(LANG_MODIFIER)', lang_modifiers[lang])
 
-    menu_list = get_all_menus(get_url, lang)
+    menu_list = get_all_menus(get_url, lang, arguments.vegetarian, arguments.vegan)
     relative_list = get_relative_list(menu_list)
     print_list = get_print_list(
         relative_list, arguments.num_past, arguments.num_future)
@@ -146,14 +144,14 @@ def process_query_for_language(lang, arguments):
 
         else:
             print_string = print_relevant_menus(
-                menu_list, print_list, arguments.vegetarian, arguments.vegan, arguments.long)
+                menu_list, print_list, arguments.long)
             return (print_string, [])
 
     return ('', [])
 
 
-def get_all_menus(url, lang_shorthand):
-    soup = download_current_menu_data(url)
+def get_all_menus(url, lang_shorthand, vegetarian_only, vegan_only):
+    soup = download_current_menu_data(url, vegetarian_only, vegan_only)
 
     menu_root_nodes = soup.find_all('div', 'preventBreak')
     menus = []
@@ -165,19 +163,37 @@ def get_all_menus(url, lang_shorthand):
     return menus
 
 
-def download_current_menu_data(url):
+def download_current_menu_data(url, vegetarian_only, vegan_only):
     response = requests.get(url)
     response.encoding = response.apparent_encoding
 
     if response.status_code == 200:
+        soup = bs4.BeautifulSoup(response.text, 'html.parser')
+        soup = filter_soup(soup, vegetarian_only, vegan_only)
         with open(download_site_path, 'w') as download_file:
-            download_file.write(response.text)
-        return bs4.BeautifulSoup(response.text, 'html.parser')
+            download_file.write(str(soup))
+        return soup
 
     else:
         print(
             f'Error retrieving page. Response code is: {response.status_code}')
         sys.exit(1)
+
+
+def filter_soup(soup, vegetarian_only, vegan_only):
+    if not vegetarian_only and not vegan_only:
+        return soup
+
+    for menu_row in soup.find_all('tr'):
+
+        if not menu_row.has_attr('class'):
+            continue
+
+        if (vegan_only and 'vegan' not in menu_row['class']) \
+            or (vegetarian_only and ('vegan' not in menu_row['class'] and 'OLV' not in menu_row['class'])):
+            menu_row.decompose()
+
+    return soup
 
 
 def get_day_menu(menu_root_node, language):
@@ -195,9 +211,7 @@ def get_day_menu(menu_root_node, language):
             menu_item_row.find('span', 'expand-nutr'))
         item_price = get_text_or_default(menu_item_row.find(
             'span', 'menue-price'), default='Unknown Price')
-        item_nutrition = get_nutrition(menu_item_row)
-        menu_item = MenuItem(item_type, item_description,
-                             item_price, item_nutrition[0], item_nutrition[1])
+        menu_item = MenuItem(item_type, item_description, item_price)
         day_menu.menu_items.append(menu_item)
 
     return day_menu
@@ -224,12 +238,6 @@ def get_text_or_default(html, default=""):
         return_string = default
 
     return return_string
-
-
-def get_nutrition(html):
-    is_vegetarian = 'OLV' in html['class']
-    is_vegan = 'vegan' in html['class']
-    return (is_vegetarian, is_vegan)
 
 
 def get_relative_list(menu_list):
@@ -273,13 +281,12 @@ def get_print_list(relative_list, num_past, num_future):
     return print_list
 
 
-def print_relevant_menus(menu_list, print_list, vegetarian, vegan, long_output):
+def print_relevant_menus(menu_list, print_list, long_output):
     output_print_string = ''
 
     for i in range(len(print_list)):
         if print_list[i]:
-            output_print_string += menu_list[i].__str__(vegetarian=vegetarian,
-                                                        vegan=vegan, compact=not long_output) + '\n'
+            output_print_string += menu_list[i].__str__(compact=not long_output) + '\n'
 
     return output_print_string
 
