@@ -115,7 +115,7 @@ def retrive_and_output(arguments):
         post_mattermost(arguments.upload, final_message, final_file_list)
         print('Upload completed')
     elif len(final_message) > 0:
-        print(final_message)
+        print(final_message, end='') # omits newline symbol
 
 
 def prepare_output_directory(output_dir):
