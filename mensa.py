@@ -6,7 +6,6 @@ import bs4
 import os
 import json
 import schedule
-import shutil
 import subprocess
 import sys
 import time
@@ -17,6 +16,7 @@ from selenium.webdriver.common.by import By
 from src.MenuItem import MenuItem
 from src.MenuList import MenuList
 from src.Constants import *
+from src.Utilities import *
 
 script_path = os.path.dirname(__file__)
 
@@ -122,12 +122,6 @@ def retrive_and_output(arguments):
         print(final_message, end='')  # omits newline symbol
 
 
-def prepare_output_directory(output_dir):
-    if os.path.exists(output_dir):
-        shutil.rmtree(output_dir)
-    os.makedirs(output_dir)
-
-
 def process_query_for_language(lang, arguments):
     get_url = mensa_url.replace(
         '$(MENSA_NAME)', mensa_names[arguments.mensa][0])
@@ -154,17 +148,6 @@ def process_query_for_language(lang, arguments):
             return (print_string, [])
 
     return ('', [])
-
-
-def get_all_menus(soup, lang_shorthand):
-    menu_root_nodes = soup.find_all('div', 'preventBreak')
-    menus = []
-
-    for menu_root in menu_root_nodes:
-        day_menu = get_day_menu(menu_root, lang_shorthand)
-        menus.append(day_menu)
-
-    return menus
 
 
 def download_current_menu_data(url, vegetarian_only, vegan_only, color_highlight):
@@ -233,7 +216,18 @@ def color_soup(soup):
     return soup
 
 
-def get_day_menu(menu_root_node, language):
+def get_all_menus(soup, lang_shorthand):
+    menu_root_nodes = soup.find_all('div', 'preventBreak')
+    menus = []
+
+    for menu_root in menu_root_nodes:
+        day_menu = get_single_menu(menu_root, lang_shorthand)
+        menus.append(day_menu)
+
+    return menus
+
+
+def get_single_menu(menu_root_node, language):
     date_string = get_text_or_default(menu_root_node.find('a'))
     date_string = date_string.split(',')[1].lstrip()  # remove weekday
     datetime_object = datetime.datetime.strptime(date_string, date_format)
@@ -297,15 +291,6 @@ def get_relative_list(menu_list):
         future_days = future_days - 1
 
     return relative_list
-
-
-def sign(x):
-    if x < 0:
-        return -1
-    elif x > 0:
-        return 1
-    else:
-        return 0
 
 
 def get_print_list(relative_list, num_past, num_future):
