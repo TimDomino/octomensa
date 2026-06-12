@@ -24,13 +24,15 @@ script_path = os.path.dirname(__file__)
 # 15tjecufht8s5mxcrt3u967cyy    Menza Gäng
 # 44n1ysibmtbxme65pmhbwoofzy    Mensa Test
 
+
 def main():
     arguments = parse_command_arguments()
 
     if arguments.daemon_timestring:  # run in daemon mode
         schedule.every().day.at(arguments.daemon_timestring).do(
             every_workday, arguments=arguments)
-        print(f'Running in daemon mode, retrieval every workday at {arguments.daemon_timestring}')
+        print(
+            f'Running in daemon mode, retrieval every workday at {arguments.daemon_timestring}')
 
         while True:
             schedule.run_pending()
@@ -80,7 +82,7 @@ def every_workday(arguments):
         hour=0, minute=0, second=0, microsecond=0)
     print(f'Everyday callback started on {today.strftime("%A, %d/%m/%y")}')
     print(f"Today's weekday is {today.weekday()}")
-    if today.weekday() < 5: # 0 is Monday, 6 is Sunday
+    if today.weekday() < 5:  # 0 is Monday, 6 is Sunday
         print('Workday. Continue.')
         retrive_and_output(arguments)
     else:
@@ -117,7 +119,7 @@ def retrive_and_output(arguments):
         post_mattermost(arguments.upload, final_message, final_file_list)
         print('Upload completed')
     elif len(final_message) > 0:
-        print(final_message, end='') # omits newline symbol
+        print(final_message, end='')  # omits newline symbol
 
 
 def prepare_output_directory(output_dir):
@@ -132,7 +134,8 @@ def process_query_for_language(lang, arguments):
     get_url = get_url.replace(
         '$(LANG_MODIFIER)', lang_modifiers[lang])
 
-    soup = download_current_menu_data(get_url, arguments.vegetarian, arguments.vegan, arguments.color)
+    soup = download_current_menu_data(
+        get_url, arguments.vegetarian, arguments.vegan, arguments.color)
     menu_list = get_all_menus(soup, lang)
     relative_list = get_relative_list(menu_list)
     print_list = get_print_list(
@@ -174,7 +177,7 @@ def download_current_menu_data(url, vegetarian_only, vegan_only, color_highlight
 
         if color_highlight:
             soup = color_soup(soup)
-        
+
         with open(download_site_path, 'w') as download_file:
             download_file.write(str(soup))
 
@@ -190,38 +193,42 @@ def filter_soup(soup, vegetarian_only, vegan_only):
     if not vegetarian_only and not vegan_only:
         return soup
 
-    flip_odd_even = False # when removing an element, flip odd even assignment for following items
+    # when removing an element, flip odd even assignment for following items
+    flip_odd_even = False
 
     for menu_row in soup.find_all('tr'):
-        if not menu_row.has_attr('class'): # other rows related to other stuff like side dishes
+        # other rows related to other stuff like side dishes
+        if not menu_row.has_attr('class'):
             continue
 
         if (vegan_only and 'vegan' not in menu_row['class']) \
-            or (vegetarian_only and ('vegan' not in menu_row['class'] and 'OLV' not in menu_row['class'])):
+                or (vegetarian_only and ('vegan' not in menu_row['class'] and 'OLV' not in menu_row['class'])):
             menu_row.decompose()
             flip_odd_even = not flip_odd_even
             continue
 
-        if menu_row.find_previous_sibling() == None: # make sure menu of each day starts on odd, even after removals
+        # make sure menu of each day starts on odd, even after removals
+        if menu_row.find_previous_sibling() == None:
             if 'even' in menu_row['class']:
                 flip_odd_even = True
             else:
                 flip_odd_even = False
 
-        if flip_odd_even: # perform the flip
+        if flip_odd_even:  # perform the flip
             if 'odd' in menu_row['class']:
-                menu_row['class'].remove('odd') 
-                menu_row['class'].append('even') 
+                menu_row['class'].remove('odd')
+                menu_row['class'].append('even')
             elif 'even' in menu_row['class']:
-                menu_row['class'].remove('even') 
-                menu_row['class'].append('odd') 
+                menu_row['class'].remove('even')
+                menu_row['class'].append('odd')
 
     return soup
 
 
 def color_soup(soup):
     head_tag = soup.find('head')
-    link_tag = soup.new_tag('link', rel='stylesheet', href='resources/css/custom_nutr_adjust.css') 
+    link_tag = soup.new_tag('link', rel='stylesheet',
+                            href='resources/css/custom_nutr_adjust.css')
     head_tag.append(link_tag)
     return soup
 
@@ -243,7 +250,8 @@ def get_day_menu(menu_root_node, language):
             'span', 'menue-price'), default='Unknown Price')
         vegetarian = 'OLV' in menu_item_row['class']
         vegan = 'vegan' in menu_item_row['class']
-        menu_item = MenuItem(item_type, item_description, item_price, vegetarian, vegan)
+        menu_item = MenuItem(item_type, item_description,
+                             item_price, vegetarian, vegan)
         day_menu.menu_items.append(menu_item)
 
     return day_menu
@@ -318,7 +326,8 @@ def print_relevant_menus(menu_list, print_list, long_output, colored):
 
     for i in range(len(print_list)):
         if print_list[i]:
-            output_print_string += menu_list[i].__str__(compact=not long_output, colored=colored) + '\n'
+            output_print_string += menu_list[i].__str__(
+                compact=not long_output, colored=colored) + '\n'
 
     return output_print_string
 
@@ -335,10 +344,11 @@ def take_screenshots(lang, menu_list, relative_list, print_list, output_dir, fil
     for i in range(len(print_list)):
         if print_list[i]:
 
-            if not (len(screenshot_list) == 0 and relative_list[i] == 0):  # if today is first screenshot, then do not click
+            # if today is first screenshot, then do not click
+            if not (len(screenshot_list) == 0 and relative_list[i] == 0):
                 menu_accordion_items[i].click()
                 time.sleep(1)
-                
+
             file_name = f'{filename_prefix}-{menu_list[i].date.strftime("%Y-%m-%d")}-{lang}'
             file_path = f'{output_dir}/{file_name}.png'
             menu_accordion_items[i].screenshot(file_path)
