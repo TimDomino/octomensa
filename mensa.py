@@ -57,6 +57,8 @@ def parse_command_arguments():
                         nargs='?', const=20, default=0, dest='num_past')
     parser.add_argument('-f', '--future', type=int, help="print next NUM_FUTURE menus, default is all",
                         nargs='?', const=20, default=0, dest='num_future')
+    parser.add_argument('-o', '--offset', type=int, help="offset the output by NUM_OFFSET menus, default is 0",
+                        default=0, dest='num_offset')
     parser.add_argument('-v', '--vegetarian', action='store_true',
                         help="only show vegetarian options")
     parser.add_argument('-vv', '--vegan', action='store_true',
@@ -64,7 +66,7 @@ def parse_command_arguments():
     parser.add_argument('-l', '--long', action='store_true',
                         help="use long instead of compact output, including dish category")
     parser.add_argument('-c', '--color', action='store_true',
-                        help="use colored output")
+                        help="use colored output, default is false")
     parser.add_argument('-lg', '--lang', help="select the language to retrieve, default is 'en'",
                         choices=['en', 'de', 'bi'], default='en')
     parser.add_argument('-s', '--screenshot', action='store_true',
@@ -133,7 +135,7 @@ def process_query_for_language(lang, arguments):
     menu_list = get_all_menus(soup, lang)
     relative_list = get_relative_list(menu_list)
     print_list = get_print_list(
-        relative_list, arguments.num_past, arguments.num_future)
+        relative_list, arguments.num_offset, arguments.num_past, arguments.num_future)
 
     if print_list.count(True) > 0:
 
@@ -293,13 +295,13 @@ def get_relative_list(menu_list):
     return relative_list
 
 
-def get_print_list(relative_list, num_past, num_future):
+def get_print_list(relative_list, num_offset, num_past, num_future):
     print_list = [False for i in range(len(relative_list))]
 
     for i in range(len(relative_list)):
-        if (relative_list[i] < 0 and relative_list[i] >= -num_past) or \
-           (relative_list[i] > 0 and relative_list[i] <= num_future) or \
-           (relative_list[i] == 0):
+        if (relative_list[i] < num_offset and relative_list[i] >= -num_past+num_offset) or \
+           (relative_list[i] > num_offset and relative_list[i] <= num_future+num_offset) or \
+           (relative_list[i] == num_offset):
 
             print_list[i] = True
 
