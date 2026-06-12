@@ -1,0 +1,15 @@
+.OLV.odd {
+    background-color: #c2dec7 !important;
+}
+
+.OLV.even {
+    background-color: #c7e3cc !important;
+}
+
+.vegan.odd {
+    background-color: #dde3c1 !important;
+}
+
+.vegan.even {
+    background-color: #e2e8c5 !important;
+}

@@ -61,6 +61,8 @@ def parse_command_arguments():
                         help="only show vegan options")
     parser.add_argument('-l', '--long', action='store_true',
                         help="use long instead of compact output, including dish category")
+    parser.add_argument('-c', '--color', action='store_true',
+                        help="use colored output")
     parser.add_argument('-lg', '--lang', help="select the language to retrieve, default is 'en'",
                         choices=['en', 'de', 'bi'], default='en')
     parser.add_argument('-s', '--screenshot', action='store_true',
@@ -130,7 +132,8 @@ def process_query_for_language(lang, arguments):
     get_url = get_url.replace(
         '$(LANG_MODIFIER)', lang_modifiers[lang])
 
-    menu_list = get_all_menus(get_url, lang, arguments.vegetarian, arguments.vegan)
+    soup = download_current_menu_data(get_url, arguments.vegetarian, arguments.vegan, arguments.color)
+    menu_list = get_all_menus(soup, lang)
     relative_list = get_relative_list(menu_list)
     print_list = get_print_list(
         relative_list, arguments.num_past, arguments.num_future)
@@ -144,15 +147,13 @@ def process_query_for_language(lang, arguments):
 
         else:
             print_string = print_relevant_menus(
-                menu_list, print_list, arguments.long)
+                menu_list, print_list, arguments.long, arguments.color)
             return (print_string, [])
 
     return ('', [])
 
 
-def get_all_menus(url, lang_shorthand, vegetarian_only, vegan_only):
-    soup = download_current_menu_data(url, vegetarian_only, vegan_only)
-
+def get_all_menus(soup, lang_shorthand):
     menu_root_nodes = soup.find_all('div', 'preventBreak')
     menus = []
 
@@ -163,15 +164,20 @@ def get_all_menus(url, lang_shorthand, vegetarian_only, vegan_only):
     return menus
 
 
-def download_current_menu_data(url, vegetarian_only, vegan_only):
+def download_current_menu_data(url, vegetarian_only, vegan_only, color_highlight):
     response = requests.get(url)
     response.encoding = response.apparent_encoding
 
     if response.status_code == 200:
         soup = bs4.BeautifulSoup(response.text, 'html.parser')
         soup = filter_soup(soup, vegetarian_only, vegan_only)
+
+        if color_highlight:
+            soup = color_soup(soup)
+        
         with open(download_site_path, 'w') as download_file:
             download_file.write(str(soup))
+
         return soup
 
     else:
@@ -184,15 +190,39 @@ def filter_soup(soup, vegetarian_only, vegan_only):
     if not vegetarian_only and not vegan_only:
         return soup
 
-    for menu_row in soup.find_all('tr'):
+    flip_odd_even = False # when removing an element, flip odd even assignment for following items
 
-        if not menu_row.has_attr('class'):
+    for menu_row in soup.find_all('tr'):
+        if not menu_row.has_attr('class'): # other rows related to other stuff like side dishes
             continue
 
         if (vegan_only and 'vegan' not in menu_row['class']) \
             or (vegetarian_only and ('vegan' not in menu_row['class'] and 'OLV' not in menu_row['class'])):
             menu_row.decompose()
+            flip_odd_even = not flip_odd_even
+            continue
 
+        if menu_row.find_previous_sibling() == None: # make sure menu of each day starts on odd, even after removals
+            if 'even' in menu_row['class']:
+                flip_odd_even = True
+            else:
+                flip_odd_even = False
+
+        if flip_odd_even: # perform the flip
+            if 'odd' in menu_row['class']:
+                menu_row['class'].remove('odd') 
+                menu_row['class'].append('even') 
+            elif 'even' in menu_row['class']:
+                menu_row['class'].remove('even') 
+                menu_row['class'].append('odd') 
+
+    return soup
+
+
+def color_soup(soup):
+    head_tag = soup.find('head')
+    link_tag = soup.new_tag('link', rel='stylesheet', href='resources/css/custom_nutr_adjust.css') 
+    head_tag.append(link_tag)
     return soup
 
 
@@ -211,7 +241,9 @@ def get_day_menu(menu_root_node, language):
             menu_item_row.find('span', 'expand-nutr'))
         item_price = get_text_or_default(menu_item_row.find(
             'span', 'menue-price'), default='Unknown Price')
-        menu_item = MenuItem(item_type, item_description, item_price)
+        vegetarian = 'OLV' in menu_item_row['class']
+        vegan = 'vegan' in menu_item_row['class']
+        menu_item = MenuItem(item_type, item_description, item_price, vegetarian, vegan)
         day_menu.menu_items.append(menu_item)
 
     return day_menu
@@ -281,12 +313,12 @@ def get_print_list(relative_list, num_past, num_future):
     return print_list
 
 
-def print_relevant_menus(menu_list, print_list, long_output):
+def print_relevant_menus(menu_list, print_list, long_output, colored):
     output_print_string = ''
 
     for i in range(len(print_list)):
         if print_list[i]:
-            output_print_string += menu_list[i].__str__(compact=not long_output) + '\n'
+            output_print_string += menu_list[i].__str__(compact=not long_output, colored=colored) + '\n'
 
     return output_print_string
 
