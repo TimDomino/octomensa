@@ -15,4 +15,4 @@ COPY src /app/src
 COPY site /app/site
 COPY secret /app/secret
 
-CMD python -u mensa.py -lg bi -c -su 15tjecufht8s5mxcrt3u967cyy -d 08:00
+CMD python -u octomensa.py -lg bi -c -su 15tjecufht8s5mxcrt3u967cyy -d 08:00

@@ -17,10 +17,6 @@ from src.MenuList import MenuList
 from src.Constants import *
 from src.Utilities import *
 
-# mattermost channel ids
-# 15tjecufht8s5mxcrt3u967cyy    Menza Gäng
-# 44n1ysibmtbxme65pmhbwoofzy    Mensa Test
-
 
 def main():
     """Entry point of the application. Retrieves command line arguments and sets up the application in either daemon or one-time mode. 

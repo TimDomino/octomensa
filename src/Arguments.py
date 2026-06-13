@@ -19,7 +19,8 @@ def parse_command_arguments():
 
     parser = argparse.ArgumentParser(
         prog='mensa.py',
-        description="Display what's on the menu at one of Aachen's finest dining places",
+        description="OctoMensa: Your favorite command-line tool for finding out what's on the menu at one of Aachen's " \
+                    "finest dining places",
         epilog=list_of_mensas)
     parser.add_argument('-m', '--mensa', help="the mensa to retrieve the menu for, default is 'vita'",
                         choices=mensa_names.keys(), default=list(mensa_names.keys())[0])
