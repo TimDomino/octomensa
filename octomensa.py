@@ -86,14 +86,11 @@ def retrive_and_output(arguments):
 
     # stich images together in bilingual mode
     if arguments.lang == 'bi' and arguments.screenshot:
-        print('Stiching screenshots together')
         final_file_list = stitch_screenshots(final_file_list)
 
     # print or post results
     if arguments.upload:
-        print('Uploading result to Mattermost')
         post_mattermost(arguments.upload, final_message, final_file_list)
-        print('Upload completed')
     elif len(final_message) > 0:
         print(final_message, end='')  # omits newline symbol
 
