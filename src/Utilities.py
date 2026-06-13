@@ -1,6 +1,7 @@
 import os
 import shutil
 
+
 def prepare_output_directory(output_dir):
     """Clears output_dir on the hard drive.
 

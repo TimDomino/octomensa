@@ -1,5 +1,6 @@
 import termcolor
 
+
 class MenuItem:
     """Class representing a single item on the menu of a particular day
     """

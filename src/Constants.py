@@ -24,7 +24,7 @@ date_format = '%d.%m.%Y'
 
 # settings related to Mattermost connection
 mattermost_server_url = 'https://mattermost.vr.rwth-aachen.de/'
-mattermost_post_url =   os.path.join(mattermost_server_url, 'api/v4/posts')
+mattermost_post_url = os.path.join(mattermost_server_url, 'api/v4/posts')
 mattermost_upload_url = os.path.join(mattermost_server_url, 'api/v4/files')
 mattermost_token = open(os.path.join(
     subscript_path, '../secret/mattermost-token.txt'), 'r').readline().replace('\n', '')
