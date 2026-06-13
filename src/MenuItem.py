@@ -1,6 +1,9 @@
 import termcolor
 
 class MenuItem:
+    """Class representing a single item on the menu of a particular day
+    """
+
     item_type = ""
     description = ""
     price = ""

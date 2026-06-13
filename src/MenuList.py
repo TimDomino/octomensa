@@ -3,17 +3,18 @@ from .Constants import *
 
 
 class MenuList:
+    """Class holding a list of MenuItem instances, overall representing the menu of a single day
+    """
+
     date = datetime.datetime.today()
-    language = 'en'
     menu_items = []
 
-    def __init__(self, date, language):
+    def __init__(self, date):
         self.date = date
-        self.language = language
         self.menu_items = []
 
-    def __str__(self, compact=False, colored=False):
-        final_string = f'{weekdays[self.language][self.date.weekday()]}, {self.date.strftime(date_format)}\n'
+    def __str__(self, lang_shorthand, compact=False, colored=False):
+        final_string = f'{weekdays[lang_shorthand][self.date.weekday()]}, {self.date.strftime(date_format)}\n'
         final_string += (len(final_string)+1) * '-' + '\n'
 
         for menu_item in self.menu_items:

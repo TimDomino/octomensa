@@ -1,9 +1,7 @@
 #!/bin/python
-import argparse
 import datetime
 import requests
 import bs4
-import os
 import json
 import schedule
 import subprocess
@@ -13,12 +11,11 @@ import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
+from src.Arguments import *
 from src.MenuItem import MenuItem
 from src.MenuList import MenuList
 from src.Constants import *
 from src.Utilities import *
-
-script_path = os.path.dirname(__file__)
 
 # mattermost channel ids
 # 15tjecufht8s5mxcrt3u967cyy    Menza Gäng
@@ -26,74 +23,55 @@ script_path = os.path.dirname(__file__)
 
 
 def main():
+    """Entry point of the application. Retrieves command line arguments and sets up the application in either daemon or one-time mode. 
+    """
+
     arguments = parse_command_arguments()
 
-    if arguments.daemon_timestring:  # run in daemon mode
+    # run in daemon mode if argument provided
+    if arguments.daemon_timestring:
         schedule.every().day.at(arguments.daemon_timestring).do(
-            every_workday, arguments=arguments)
+            every_day, arguments=arguments)
         print(
             f'Running in daemon mode, retrieval every workday at {arguments.daemon_timestring}')
 
         while True:
             schedule.run_pending()
             time.sleep(5)
-    else:  # run once
+
+    # run only once if daemon argument is not provided
+    else:
         retrive_and_output(arguments)
 
 
-def parse_command_arguments():
-    list_of_mensas = 'Available locations are '
-    for key in mensa_names.keys():
-        list_of_mensas += f'{mensa_names[key][1]} ({key}), '
-    list_of_mensas = list_of_mensas[:-2]
+def every_day(arguments):
+    """Callback function invoked every day at the specified time string when in daemon mode.
 
-    parser = argparse.ArgumentParser(
-        prog='mensa.py',
-        description="Display what's on the menu at one of Aachen's finest dining places",
-        epilog=list_of_mensas)
-    parser.add_argument('-m', '--mensa', help="the mensa to retrieve the menu for, default is 'vita'",
-                        choices=mensa_names.keys(), default=list(mensa_names.keys())[0])
-    parser.add_argument('-p', '--past', type=int, help="print previous NUM_PAST menus, default is all",
-                        nargs='?', const=20, default=0, dest='num_past')
-    parser.add_argument('-f', '--future', type=int, help="print next NUM_FUTURE menus, default is all",
-                        nargs='?', const=20, default=0, dest='num_future')
-    parser.add_argument('-o', '--offset', type=int, help="offset the output by NUM_OFFSET menus, default is 0",
-                        default=0, dest='num_offset')
-    parser.add_argument('-v', '--vegetarian', action='store_true',
-                        help="only show vegetarian options")
-    parser.add_argument('-vv', '--vegan', action='store_true',
-                        help="only show vegan options")
-    parser.add_argument('-l', '--long', action='store_true',
-                        help="use long instead of compact output, including dish category")
-    parser.add_argument('-c', '--color', action='store_true',
-                        help="use colored output, default is false")
-    parser.add_argument('-lg', '--lang', help="select the language to retrieve, default is 'en'",
-                        choices=['en', 'de', 'bi'], default='en')
-    parser.add_argument('-s', '--screenshot', action='store_true',
-                        help="save a screenshot of each selected menu")
-    parser.add_argument('-u', '--upload', action='store',
-                        help="upload the result to Mattermost, takes the channel ID as parameter")
-    parser.add_argument('-d', '--daemon', action='store',
-                        help='run as daemon to retrieve plan every day at the given clock time string, e.g., 08:00', dest='daemon_timestring')
+    Arguments:
+    arguments -- the command line arguments given to the application
 
-    return parser.parse_args()
+    Return arguments:
+    (none)
+    """
 
-
-def every_workday(arguments):
     today = datetime.datetime.today().replace(
         hour=0, minute=0, second=0, microsecond=0)
     print(f'Everyday callback started on {today.strftime("%A, %d/%m/%y")}')
-    print(f"Today's weekday is {today.weekday()}")
-    if today.weekday() < 5:  # 0 is Monday, 6 is Sunday
-        print('Workday. Continue.')
-        retrive_and_output(arguments)
-    else:
-        print('Not a workday. Skip.')
-
+    retrive_and_output(arguments)
     print('Everyday callback terminated')
 
 
 def retrive_and_output(arguments):
+    """Starting point to retrieve the required menus based on the provided arguments. Triggers the download of menus, potentially in multiple languages, merges the outputs, posts the results to the desired outlet. 
+
+    Arguments:
+    arguments -- the command line arguments given to the application
+
+    Return arguments:
+    (none)
+    """
+
+    # setup variables and directories
     if arguments.screenshot:
         prepare_output_directory(screenshot_directory)
 
@@ -125,6 +103,17 @@ def retrive_and_output(arguments):
 
 
 def process_query_for_language(lang, arguments):
+    """Retrieves the mensa menu for a single language based on the specified arguments.
+
+    Arguments:
+    lang -- the language in which the menus should be retrieved (either 'en' or 'de')
+    arguments -- the remaining command line arguments that specify the selection criteria
+
+    Return arguments:
+    message -- the text message output resulting from the query (empty when screenshot mode is defined)
+    file list -- a list of files containing the screenshots resulting from the query (empty when text mode is defined)
+    """
+
     get_url = mensa_url.replace(
         '$(MENSA_NAME)', mensa_names[arguments.mensa][0])
     get_url = get_url.replace(
@@ -132,27 +121,42 @@ def process_query_for_language(lang, arguments):
 
     soup = download_current_menu_data(
         get_url, arguments.vegetarian, arguments.vegan, arguments.color)
-    menu_list = get_all_menus(soup, lang)
+    menu_list = get_all_menus(soup)
     relative_list = get_relative_list(menu_list)
     print_list = get_print_list(
         relative_list, arguments.num_offset, arguments.num_past, arguments.num_future)
 
+    # check if filter criteria yielded any result that should be output
     if print_list.count(True) > 0:
 
+        # output screenshot if this mode is selected
         if arguments.screenshot:
-            screenshot_list = take_screenshots(lang, menu_list, relative_list,
-                                               print_list, screenshot_directory, arguments.mensa)
+            screenshot_list = take_screenshots(menu_list, relative_list,
+                                               print_list, lang, screenshot_directory, arguments.mensa)
             return ('', screenshot_list)
 
+        # output text by default
         else:
             print_string = print_relevant_menus(
-                menu_list, print_list, arguments.long, arguments.color)
+                menu_list, print_list, lang, arguments.long, arguments.color)
             return (print_string, [])
 
     return ('', [])
 
 
 def download_current_menu_data(url, vegetarian_only, vegan_only, color_highlight):
+    """Downloads the webpage containing the currently available menu data and filters it based on the provided parameters.
+
+    Arguments:
+    url -- the URL pointing to the currently available menu data
+    vegetarian_only -- boolean indicating to filter for vegetarian meals only
+    vegan_only -- boolean indicating to filter for vegan meals only
+    color_highlight -- boolean indicating to apply color highlighting for vegetarian and vegan meals on the webpage (relevant for screenshot mode)
+
+    Return arguments:
+    soup -- a BeautifulSoup object containing the downloaded and adjusted HTML source
+    """
+
     response = requests.get(url)
     response.encoding = response.apparent_encoding
 
@@ -175,6 +179,18 @@ def download_current_menu_data(url, vegetarian_only, vegan_only, color_highlight
 
 
 def filter_soup(soup, vegetarian_only, vegan_only):
+    """Filters the downloaded HTML page of the menus for vegetarian or vegan meals only.
+
+    Arguments:
+    soup -- the BeautifulSoup object containing the downloaded HTML source
+    vegetarian_only -- boolean indicating to filter for vegetarian meals only
+    vegan_only -- boolean indicating to filter for vegan meals only
+
+    Return arguments:
+    soup -- a modified BeautifulSoup object with the desired filters applied
+    """
+
+    # return input if no filtering is required
     if not vegetarian_only and not vegan_only:
         return soup
 
@@ -182,24 +198,26 @@ def filter_soup(soup, vegetarian_only, vegan_only):
     flip_odd_even = False
 
     for menu_row in soup.find_all('tr'):
-        # other rows related to other stuff like side dishes
+        # other rows related to other stuff like side dishes can be skipped
         if not menu_row.has_attr('class'):
             continue
 
+        # menus not matching the filter criteria can be removed
         if (vegan_only and 'vegan' not in menu_row['class']) \
                 or (vegetarian_only and ('vegan' not in menu_row['class'] and 'OLV' not in menu_row['class'])):
             menu_row.decompose()
             flip_odd_even = not flip_odd_even
             continue
 
-        # make sure menu of each day starts on odd, even after removals
+        # make sure menu of each day starts on odd row coloring, even after removals
         if menu_row.find_previous_sibling() == None:
             if 'even' in menu_row['class']:
                 flip_odd_even = True
             else:
                 flip_odd_even = False
 
-        if flip_odd_even:  # perform the flip
+        # perform the flip for the current row if required
+        if flip_odd_even:
             if 'odd' in menu_row['class']:
                 menu_row['class'].remove('odd')
                 menu_row['class'].append('even')
@@ -211,6 +229,15 @@ def filter_soup(soup, vegetarian_only, vegan_only):
 
 
 def color_soup(soup):
+    """Links another stylesheet to the downloaded HTML source with the menus to highlight vegetarian and vegan meal options visually.
+
+    Arguments:
+    soup -- the BeautifulSoup object containing the downloaded HTML source
+
+    Return arguments:
+    soup -- a modified BeautifulSoup object with the stylesheet added
+    """
+
     head_tag = soup.find('head')
     link_tag = soup.new_tag('link', rel='stylesheet',
                             href='resources/css/custom_nutr_adjust.css')
@@ -218,22 +245,40 @@ def color_soup(soup):
     return soup
 
 
-def get_all_menus(soup, lang_shorthand):
+def get_all_menus(soup):
+    """Parses the provided BeautifulSoup object for all available menus on the corresponding webpage.
+
+    Arguments:
+    soup -- the BeautifulSoup object containing the HTML source
+
+    Return arguments:
+    menus -- a list of MenuList objects for each day presented on the page of the soup object
+    """
+
     menu_root_nodes = soup.find_all('div', 'preventBreak')
     menus = []
 
     for menu_root in menu_root_nodes:
-        day_menu = get_single_menu(menu_root, lang_shorthand)
+        day_menu = get_day_menu(menu_root)
         menus.append(day_menu)
 
     return menus
 
 
-def get_single_menu(menu_root_node, language):
+def get_day_menu(menu_root_node):
+    """Parses the provided DOM root node of a single day for all dishes available on that day.
+
+    Arguments:
+    menu_root_node -- the node of the original BeautifulSoup object referring to the requested day
+
+    Return arguments:
+    day_menu -- an instande of MenuList representing the dishes on that day
+    """
+
     date_string = get_text_or_default(menu_root_node.find('a'))
     date_string = date_string.split(',')[1].lstrip()  # remove weekday
     datetime_object = datetime.datetime.strptime(date_string, date_format)
-    day_menu = MenuList(datetime_object, language)
+    day_menu = MenuList(datetime_object)
 
     menu_table = menu_root_node.find('table', 'menues')
 
@@ -254,6 +299,16 @@ def get_single_menu(menu_root_node, language):
 
 
 def get_text_or_default(html, default=""):
+    """Gets the clean text out of the provided HTML tag by removing allergene letters and other undesired characters.
+
+    Arguments:
+    html -- the node from which the text should be extracted
+    default -- the text to return when no text can be extracted
+
+    Return arguments:
+    return_string -- the retrieved string
+    """
+
     return_string = ""
 
     try:
@@ -277,6 +332,15 @@ def get_text_or_default(html, default=""):
 
 
 def get_relative_list(menu_list):
+    """Takes a list of MenuList instances and computes their relative distance to today's date. 
+
+    Arguments:
+    menu_list -- the list of MenuList instances to create the relative list for
+
+    Return arguments:
+    relative_list -- a list of same length as menu_list, with each item containing an integer representing the distance to today's date. Today's menu refers to 0, the last menu before today to -1, the menu before that to -2, and so on. The next menu after today refers to 1, the menu after that to 2, and so on.
+    """
+
     today = datetime.datetime.today().replace(
         hour=0, minute=0, second=0, microsecond=0)
     relative_list = list(map(lambda menu: (menu.date-today).days, menu_list))
@@ -296,6 +360,18 @@ def get_relative_list(menu_list):
 
 
 def get_print_list(relative_list, num_offset, num_past, num_future):
+    """Takes a relative list describing the available menus and computes a print list stating which of these menus match the desired filter criteria. 
+
+    Arguments:
+    relative_list -- a list of integers describing the distance of each menu to today's date, see get_relative_list()
+    num_offset -- the number of entries to offset the calculation. An offset of 1, for example, takes the next menu in the future as the reference for the following parameters
+    num_past -- the number of menus in the past from the reference menu to be included in the output. If num_offset is 0, the reference day is today.
+    num_future -- the number of menus in the future from the reference menu to be included in the output. If num_offset is 0, the reference day is today.
+
+    Return arguments:
+    print_list -- a list of same length as relative_list, with each item containing a boolean stating whether the corresponding menu should be output based on the filter criteria.
+    """
+
     print_list = [False for i in range(len(relative_list))]
 
     for i in range(len(relative_list)):
@@ -308,18 +384,42 @@ def get_print_list(relative_list, num_offset, num_past, num_future):
     return print_list
 
 
-def print_relevant_menus(menu_list, print_list, long_output, colored):
+def print_relevant_menus(menu_list, print_list, lang_shorthand, long_output, colored):
+    """Creates textual output describing the menus of interest by applying the print list from get_print_list() to the menu list from get_all_menus() 
+
+    Arguments:
+    menu_list -- a list of MenuList instances representing the downloaded menus
+    print_list -- a list of booleans, same length as menu_list, with each boolean indicating whether the corresponding menu should be printed
+    lang_shorthand -- the language to print the weekdays in, can be either 'en' or 'de'
+    colored -- a boolean indicating if terminal colors should be used for the output
+
+    Return arguments:
+    output_print_string -- the resulting string of menus
+    """
+
     output_print_string = ''
 
     for i in range(len(print_list)):
         if print_list[i]:
             output_print_string += menu_list[i].__str__(
-                compact=not long_output, colored=colored) + '\n'
+                lang_shorthand=lang_shorthand, compact=not long_output, colored=colored) + '\n'
 
     return output_print_string
 
 
-def take_screenshots(lang, menu_list, relative_list, print_list, output_dir, filename_prefix):
+def take_screenshots(menu_list, relative_list, print_list, lang, output_dir, filename_prefix):
+    """Creates screenshots of all menus of interest by applying the print list from get_print_list() to the menu list from get_all_menus()
+
+    Arguments:
+    menu_list -- a list of MenuList instances representing the downloaded menus
+    relative_list -- a list of integers describing the distance of each menu to today's date, see get_relative_list()
+    print_list -- a list of booleans, same length as menu_list, with each boolean indicating whether the corresponding menu should be printed
+    lang -- a language indicator used in the filename of the output
+
+    Return arguments:
+    screenshot_list -- a list of filenames of the created screenshots
+    """
+
     options = webdriver.FirefoxOptions()
     options.add_argument("--headless")
     browser = webdriver.Firefox(options=options)
@@ -346,6 +446,15 @@ def take_screenshots(lang, menu_list, relative_list, print_list, output_dir, fil
 
 
 def stitch_screenshots(screenshot_list):
+    """In bilingual mode, stiches the german and the english menu screenshots together in one file by using imagemagick's montage tool.
+
+    arguments:
+    screenshot_list -- a list of screenshots created with take_screenshots(), where each filename ending with '-de' should have a corresponding file ending in '-en'
+
+    return arguments:
+    output_file_list -- a list of filenames of the stitched screenshot files
+    """
+
     output_file_list = []
 
     for file_name in screenshot_list:
@@ -360,6 +469,17 @@ def stitch_screenshots(screenshot_list):
 
 
 def post_mattermost(channel_id, message, attachments=[]):
+    """Posts the provided parameters to the configured Mattermost server.
+
+    Arguments:
+    channel_id -- the ID of the Mattermost channel to post in
+    message -- the text message to be posted
+    attachments -- the files to be attached to the message (5 maximum)
+
+    Return arguments:
+    (none)
+    """
+
     if len(attachments) > 5:  # terminate when too many attachments are provided
         print('Error: Upload of more than five attachments is not supported by Mattermost')
         sys.exit(1)
