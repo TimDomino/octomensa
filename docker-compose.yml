@@ -1,5 +1,5 @@
 services:
-  mensa:
+  ocotomensa:
     build: .
     restart: unless-stopped
     environment:
