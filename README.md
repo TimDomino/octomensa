@@ -1,7 +1,7 @@
 # OctoMensa
 OctoMensa: Your favorite command-line tool for finding out what's on the menu at one of Aachen's finest dining places
 
-![](octomensa.png "OctoMensa")
+![](teaser.png "OctoMensa")
 
 ## Usage Examples
 
