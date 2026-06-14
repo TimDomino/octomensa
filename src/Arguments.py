@@ -18,7 +18,7 @@ def parse_command_arguments():
     list_of_mensas = list_of_mensas[:-2]
 
     parser = argparse.ArgumentParser(
-        prog='mensa.py',
+        prog='octomensa.py',
         description="OctoMensa: Your favorite command-line tool for finding out what's on the menu at one of Aachen's " \
                     "finest dining places",
         epilog=list_of_mensas)
