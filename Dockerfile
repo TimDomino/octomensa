@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN apt update -y
 RUN apt install -y firefox-esr
 
-COPY mensa.py /app/mensa.py
+COPY octomensa.py /app/octomensa.py
 COPY src /app/src
 COPY site /app/site
 COPY secret /app/secret
