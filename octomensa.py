@@ -160,8 +160,8 @@ def download_current_menu_data(url, vegetarian_only, vegan_only, color_highlight
         if color_highlight:
             soup = color_soup(soup)
 
-        with open(download_site_path, 'w') as download_file:
-            download_file.write(str(soup))
+        with open(download_site_path, 'wb') as download_file:
+            download_file.write(str(soup).encode('utf-8'))
 
         return soup
 
