@@ -1,5 +1,5 @@
 services:
-  ocotomensa:
+  octomensa:
     build: .
     restart: unless-stopped
     environment:
