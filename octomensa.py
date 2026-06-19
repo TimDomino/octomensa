@@ -113,7 +113,7 @@ def process_query_for_language(lang, arguments):
         '$(LANG_MODIFIER)', lang_modifiers[lang])
 
     soup = download_current_menu_data(
-        sub_url, arguments.vegetarian, arguments.vegan, arguments.color)
+        sub_url, arguments.vegetarian, arguments.vegan, arguments.color, arguments.lang == 'bi')
     menu_list = get_all_menus(soup)
     relative_list = get_relative_list(menu_list)
     print_list = get_print_list(
@@ -137,7 +137,7 @@ def process_query_for_language(lang, arguments):
     return ('', [])
 
 
-def download_current_menu_data(suburl, vegetarian_only, vegan_only, color_highlight):
+def download_current_menu_data(suburl, vegetarian_only, vegan_only, color_highlight, add_row_padding):
     """Downloads the webpage containing the currently available menu data and filters it based on the provided parameters.
 
     Arguments:
@@ -145,12 +145,13 @@ def download_current_menu_data(suburl, vegetarian_only, vegan_only, color_highli
     vegetarian_only -- boolean indicating to filter for vegetarian meals only
     vegan_only -- boolean indicating to filter for vegan meals only
     color_highlight -- boolean indicating to apply color highlighting for vegetarian and vegan meals on the webpage (relevant for screenshot mode)
+    add_row_padding -- boolean indicating if all rows should be padded to have a height equal to two lines of dish description text (relevant for the alignment of dishes in bilingual screenshots with languages placed side-by-side)
 
     Return arguments:
     soup -- a BeautifulSoup object containing the downloaded and adjusted HTML source
     """
 
-    # download additional files like css and js
+    # download additional files like css and js if they do not exist
     for filename in additional_files:
         if os.path.exists(os.path.join(download_site_dir, filename)):
             continue
@@ -169,7 +170,10 @@ def download_current_menu_data(suburl, vegetarian_only, vegan_only, color_highli
         soup = filter_soup(soup, vegetarian_only, vegan_only)
 
         if color_highlight:
-            soup = color_soup(soup)
+            soup = add_stylesheet_to_soup(soup, 'resources/css/custom_nutr_adjust.css')
+
+        if add_row_padding:
+            soup = add_stylesheet_to_soup(soup, 'resources/css/custom_table_height.css')
 
         with open(os.path.join(download_site_dir, download_site_name), 'wb') as download_file:
             download_file.write(str(soup).encode('utf-8'))
@@ -232,11 +236,12 @@ def filter_soup(soup, vegetarian_only, vegan_only):
     return soup
 
 
-def color_soup(soup):
-    """Links another stylesheet to the downloaded HTML source with the menus to highlight vegetarian and vegan meal options visually.
+def add_stylesheet_to_soup(soup, path):
+    """Links another stylesheet to the downloaded HTML source.
 
     Arguments:
     soup -- the BeautifulSoup object containing the downloaded HTML source
+    path -- the relative path to the stylesheet
 
     Return arguments:
     soup -- a modified BeautifulSoup object with the stylesheet added
@@ -244,7 +249,7 @@ def color_soup(soup):
 
     head_tag = soup.find('head')
     link_tag = soup.new_tag('link', rel='stylesheet',
-                            href='resources/css/custom_nutr_adjust.css')
+                            href=path)
     head_tag.append(link_tag)
     return soup
 
