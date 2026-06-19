@@ -76,6 +76,10 @@ def retrive_and_output(arguments):
     else:
         languages_to_process = [arguments.lang]
 
+    if arguments.upload:
+        mattermost_token = open(os.path.join(
+            subscript_path, '../secret/mattermost-token.txt'), 'r').readline().replace('\n', '')
+
     # main part: iterate through languages and create desired results
     final_message = ''
     final_file_list = []
@@ -90,7 +94,7 @@ def retrive_and_output(arguments):
 
     # print or post results
     if arguments.upload:
-        post_mattermost(arguments.upload, final_message, final_file_list)
+        post_mattermost(mattermost_token, arguments.upload, final_message, final_file_list)
     elif len(final_message) > 0:
         print(final_message, end='')  # omits newline symbol
 
@@ -477,10 +481,11 @@ def stitch_screenshots(screenshot_list):
     return output_file_list
 
 
-def post_mattermost(channel_id, message, attachments=[]):
+def post_mattermost(token, channel_id, message, attachments=[]):
     """Posts the provided parameters to the configured Mattermost server.
 
     Arguments:
+    token -- the access token to access the Mattermost server
     channel_id -- the ID of the Mattermost channel to post in
     message -- the text message to be posted
     attachments -- the files to be attached to the message (5 maximum)
@@ -496,7 +501,7 @@ def post_mattermost(channel_id, message, attachments=[]):
         return
 
     session = requests.Session()
-    session.headers.update({"Authorization": f"Bearer {mattermost_token}"})
+    session.headers.update({"Authorization": f"Bearer {token}"})
 
     upload_file_ids = []
 
