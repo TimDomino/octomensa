@@ -94,7 +94,8 @@ def retrive_and_output(arguments):
 
     # print or post results
     if arguments.upload:
-        post_mattermost(mattermost_token, arguments.upload, final_message, final_file_list)
+        post_mattermost(mattermost_token, arguments.upload,
+                        final_message, final_file_list)
     elif len(final_message) > 0:
         print(final_message, end='')  # omits newline symbol
 
@@ -174,10 +175,12 @@ def download_current_menu_data(suburl, vegetarian_only, vegan_only, color_highli
         soup = filter_soup(soup, vegetarian_only, vegan_only)
 
         if color_highlight:
-            soup = add_stylesheet_to_soup(soup, 'resources/css/custom_nutr_adjust.css')
+            soup = add_stylesheet_to_soup(
+                soup, 'resources/css/custom_nutr_adjust.css')
 
         if add_row_padding:
-            soup = add_stylesheet_to_soup(soup, 'resources/css/custom_table_height.css')
+            soup = add_stylesheet_to_soup(
+                soup, 'resources/css/custom_table_height.css')
 
         with open(os.path.join(download_site_dir, download_site_name), 'wb') as download_file:
             download_file.write(str(soup).encode('utf-8'))

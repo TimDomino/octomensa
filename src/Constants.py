@@ -9,7 +9,8 @@ download_site_name = 'mensa.html'
 # settings related to data source
 base_url = 'https://www.studierendenwerk-aachen.de/'
 plan_url = 'speiseplaene/$(MENSA_NAME)-w$(LANG_MODIFIER).html'
-additional_files = ['resources/css/view.css', 'resources/js/jquery.js', 'resources/js/script.js']
+additional_files = ['resources/css/view.css',
+                    'resources/js/jquery.js', 'resources/js/script.js']
 lang_modifiers = {'en': '-en', 'de': ''}
 mensa_names = {'vita': ('vita', 'Mensa Vita'),
                'acad': ('academica', 'Mensa Academica'),
