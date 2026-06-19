@@ -107,13 +107,13 @@ def process_query_for_language(lang, arguments):
     file list -- a list of files containing the screenshots resulting from the query (empty when text mode is defined)
     """
 
-    get_url = mensa_url.replace(
+    sub_url = plan_url.replace(
         '$(MENSA_NAME)', mensa_names[arguments.mensa][0])
-    get_url = get_url.replace(
+    sub_url = sub_url.replace(
         '$(LANG_MODIFIER)', lang_modifiers[lang])
 
     soup = download_current_menu_data(
-        get_url, arguments.vegetarian, arguments.vegan, arguments.color)
+        sub_url, arguments.vegetarian, arguments.vegan, arguments.color)
     menu_list = get_all_menus(soup)
     relative_list = get_relative_list(menu_list)
     print_list = get_print_list(
@@ -137,11 +137,11 @@ def process_query_for_language(lang, arguments):
     return ('', [])
 
 
-def download_current_menu_data(url, vegetarian_only, vegan_only, color_highlight):
+def download_current_menu_data(suburl, vegetarian_only, vegan_only, color_highlight):
     """Downloads the webpage containing the currently available menu data and filters it based on the provided parameters.
 
     Arguments:
-    url -- the URL pointing to the currently available menu data
+    suburl -- the sub-URL pointing to the menu data of the desired location and language
     vegetarian_only -- boolean indicating to filter for vegetarian meals only
     vegan_only -- boolean indicating to filter for vegan meals only
     color_highlight -- boolean indicating to apply color highlighting for vegetarian and vegan meals on the webpage (relevant for screenshot mode)
@@ -150,7 +150,18 @@ def download_current_menu_data(url, vegetarian_only, vegan_only, color_highlight
     soup -- a BeautifulSoup object containing the downloaded and adjusted HTML source
     """
 
-    response = requests.get(url)
+    # download additional files like css and js
+    for filename in additional_files:
+        if os.path.exists(os.path.join(download_site_dir, filename)):
+            continue
+
+        response = requests.get(os.path.join(base_url, filename))
+        with open(os.path.join(download_site_dir, filename), 'wb+') as download_file:
+            response.encoding = response.apparent_encoding
+            download_file.write(response.text.encode('utf-8'))
+
+    # download current plan
+    response = requests.get(os.path.join(base_url, suburl))
     response.encoding = response.apparent_encoding
 
     if response.status_code == 200:
@@ -160,7 +171,7 @@ def download_current_menu_data(url, vegetarian_only, vegan_only, color_highlight
         if color_highlight:
             soup = color_soup(soup)
 
-        with open(download_site_path, 'wb') as download_file:
+        with open(os.path.join(download_site_dir, download_site_name), 'wb') as download_file:
             download_file.write(str(soup).encode('utf-8'))
 
         return soup
@@ -416,7 +427,7 @@ def take_screenshots(menu_list, relative_list, print_list, lang, output_dir, fil
     options = webdriver.FirefoxOptions()
     options.add_argument("--headless")
     browser = webdriver.Firefox(options=options)
-    browser.get('file://' + download_site_path)
+    browser.get('file://' + os.path.join(download_site_dir, download_site_name))
     menu_accordion_items = browser.find_elements(
         By.CSS_SELECTOR, '.preventBreak')
 

@@ -4,3 +4,6 @@ secret/*
 *__pycache__*
 venv/*
 site/mensa.html
+site/resources/css/view.css
+site/resources/js/jquery.js
+site/resources/js/script.js

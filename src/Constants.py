@@ -4,10 +4,13 @@ import os
 # file paths
 subscript_path = os.path.dirname(__file__)
 screenshot_directory = os.path.join(subscript_path, '../output/')
-download_site_path = os.path.join(subscript_path, '../site/mensa.html')
+download_site_dir = os.path.join(subscript_path, '../site')
+download_site_name = 'mensa.html'
 
 # settings related to data source
-mensa_url = 'https://www.studierendenwerk-aachen.de/speiseplaene/$(MENSA_NAME)-w$(LANG_MODIFIER).html'
+base_url = 'https://www.studierendenwerk-aachen.de/'
+plan_url = 'speiseplaene/$(MENSA_NAME)-w$(LANG_MODIFIER).html'
+additional_files = ['resources/css/view.css', 'resources/js/jquery.js', 'resources/js/script.js']
 lang_modifiers = {'en': '-en', 'de': ''}
 mensa_names = {'vita': ('vita', 'Mensa Vita'),
                'acad': ('academica', 'Mensa Academica'),
