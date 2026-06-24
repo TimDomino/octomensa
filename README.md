@@ -97,7 +97,7 @@ usage: octomensa.py [-h] [-m {vita,acad,ahor,temp,baye,kmac,eupe,sued,juel}]
                     [-d DAEMON_TIMESTRING]
 
 OctoMensa: Your favorite command-line tool for finding out what's on the menu
-at one of Aachen's finest dining places
+at all of Aachen's finest dining places
 
 options:
   -h, --help            show this help message and exit
