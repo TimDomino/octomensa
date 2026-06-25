@@ -76,7 +76,7 @@ def retrive_and_output(arguments):
     else:
         languages_to_process = [arguments.lang]
 
-    if arguments.upload:
+    if arguments.channel_id:
         mattermost_token = open(os.path.join(
             subscript_path, '../secret/mattermost-token.txt'), 'r').readline().replace('\n', '')
 
@@ -93,8 +93,8 @@ def retrive_and_output(arguments):
         final_file_list = stitch_screenshots(final_file_list)
 
     # print or post results
-    if arguments.upload:
-        post_mattermost(mattermost_token, arguments.upload,
+    if arguments.channel_id:
+        post_mattermost(mattermost_token, arguments.channel_id,
                         final_message, final_file_list)
     elif len(final_message) > 0:
         print(final_message, end='')  # omits newline symbol

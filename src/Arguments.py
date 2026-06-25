@@ -43,7 +43,7 @@ def parse_command_arguments():
     parser.add_argument('-s', '--screenshot', action='store_true',
                         help="save a screenshot of each selected menu")
     parser.add_argument('-u', '--upload', action='store',
-                        help="upload the result to Mattermost, takes the channel ID as parameter")
+                        help="upload the result to Mattermost, takes the channel ID as parameter", dest='channel_id')
     parser.add_argument('-d', '--daemon', action='store',
                         help='run as daemon to retrieve plan every day at the given clock time string, e.g., 08:00', dest='daemon_timestring')
 
